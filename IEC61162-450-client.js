@@ -7,8 +7,7 @@ const process = require("process");
 
 const socket = dgram.createSocket({ type: "udp4", reuseAddr: true });
 
-// socket.bind(PORT,HOST);
-socket.bind(PORT); // HOST prevent Linux machines to receive multicast messages
+socket.bind(PORT);
 
 socket.on("listening", function() {
     socket.addMembership(MULTICAST_ADDR, HOST);
