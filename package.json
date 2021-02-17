@@ -14,5 +14,10 @@
   "license": "MIT",
   "dependencies": {
     "@signalk/nmea0183-signalk": "^3.7.0"
+  },
+  "devDependencies": {
+    "eslint": "^7.17.0",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-plugin-import": "^2.22.1"
   }
 }
