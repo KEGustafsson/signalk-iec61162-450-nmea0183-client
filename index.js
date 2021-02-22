@@ -39,6 +39,9 @@ module.exports = function (app) {
       if (socketMulticast[i]) {
         socketMulticast[i].on('message', (message) => {
           message = message.toString('utf8');
+          if (options.removeUdPbC) {
+            message = message.replace('UdPbC\u0000','');
+          }
           app.debug(message);
           // console.log(JSON.stringify(message, null, 2)); //For debugging JSON
           nmeaParser(message);
@@ -72,7 +75,8 @@ module.exports = function (app) {
         app.handleMessage(plugin.id, delta);
       }
     } catch (e) {
-      console.error(`[error] ${e.message}`);
+      //console.log(JSON.stringify(message, null, 2));
+      console.error(`${plugin.id}: ${e.message}`);
     }
   }
 
@@ -97,6 +101,11 @@ module.exports = function (app) {
         type: 'string',
         title: 'LAN IP address connected to IEC61162-450 network. Internet connection via IEC61162-460 secure gateway',
         default: '192.168.0.x',
+      },
+      removeUdPbC: {
+        type: 'boolean',
+        title: 'Remove "UdPbC" prefix from the strings',
+        default: true,
       },
       sendNmeaOut: {
         type: 'string',
