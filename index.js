@@ -40,17 +40,18 @@ module.exports = function (app) {
         socketMulticast[i].on('message', (message) => {
           message = message.toString('utf8');
           if (options.removeUdPbC) {
-            message = message.replace('UdPbC\u0000','');
+            message = message.replace('UdPbC\u0000', '');
           }
           app.debug(message);
           // console.log(JSON.stringify(message, null, 2)); //For debugging JSON
-          nmeaParser(message);
           if (socketUdp) {
             udpSend(message, options.sendAddress, options.sendPort);
           }
           if (options.sendNmeaOut) {
             nmeaOut(message, options.sendNmeaOut);
           }
+          message = message.replace('UdPbC\u0000', '');
+          nmeaParser(message);
         });
       }
     }
@@ -75,7 +76,7 @@ module.exports = function (app) {
         app.handleMessage(plugin.id, delta);
       }
     } catch (e) {
-      //console.log(JSON.stringify(message, null, 2));
+      // console.log(JSON.stringify(message, null, 2));
       console.error(`${plugin.id}: ${e.message}`);
     }
   }
