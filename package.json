@@ -13,7 +13,8 @@
   "author": "Karl-Erik Gustafsson",
   "license": "MIT",
   "dependencies": {
-    "@signalk/nmea0183-signalk": "^3.7.0"
+    "@signalk/nmea0183-signalk": "github:KEGustafsson/nmea0183-signalk#accept_empty",
+    "@signalk/nmea0183-utilities": "github:KEGustafsson/nmea0183-utilities#accept_empty"
   },
   "devDependencies": {
     "eslint": "^7.17.0",
