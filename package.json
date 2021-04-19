@@ -1,0 +1,24 @@
+{
+  "name": "signalk-iec61162-450-nmea0183-client",
+  "version": "0.0.1",
+  "description": "SignalK server plugin to connect IEC61162-450 network and receive multicast streams",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "signalk-node-server-plugin"
+  ],
+  "repository": "",
+  "author": "Karl-Erik Gustafsson",
+  "license": "MIT",
+  "dependencies": {
+    "@signalk/nmea0183-signalk": "github:KEGustafsson/nmea0183-signalk#accept_empty",
+    "@signalk/nmea0183-utilities": "github:KEGustafsson/nmea0183-utilities#accept_empty"
+  },
+  "devDependencies": {
+    "eslint": "^7.17.0",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-plugin-import": "^2.22.1"
+  }
+}
