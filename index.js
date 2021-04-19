@@ -9,52 +9,48 @@ module.exports = function (app) {
   // const setStatus = app.setPluginStatus || app.setProviderStatus; // Not used yet
 
   let numberMulticast = null;
-  const socketMulticast = [];
+  let socketMulticast = [];
   let socketUdp = [];
   const parser = new Parser();
+  let multicast = [];
 
   plugin.start = function (options) {
-    numberMulticast = Object.keys(options.multicast).length;
+    numberMulticast = Object.keys(options.multicast);
     app.debug(`Number of configs: ${numberMulticast}`);
-    app.debug(options.interfaceIP);
-    let multicast;
     let counter = 0;
 
     if (options.sendAddress && options.sendPort) {
       socketUdp = dgram.createSocket({ type: 'udp4', reuseAddr: true });
     }
 
-    let i;
-    for (i = 0; i < numberMulticast; i++) {
-      multicast = options.multicast[i];
-      socketMulticast[i] = dgram.createSocket({ type: 'udp4', reuseAddr: true });
-      socketMulticast[i].bind(multicast.multicastPort, () => {
+    numberMulticast.forEach(items => {
+      multicast = options.multicast[items];
+      socketMulticast[items] = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+      socketMulticast[items].bind(multicast.multicastPort, () => {
         socketMulticast[counter].addMembership(options.multicast[counter].multicastAddress);
-        app.debug(options.multicast[counter].multicastAddress);
-        app.debug(options.multicast[counter].multicastPort);
-        app.debug(options.interfaceIP);
+        app.debug(`Multicast[${counter}] IP: ${options.multicast[counter].multicastAddress}`);
+        app.debug(`Multicast[${counter}] Port: ${options.multicast[counter].multicastPort}`);
+        app.debug(`Multicast[${counter}] Interface: ${options.interfaceIP}`);
         counter += 1;
       });
 
-      if (socketMulticast[i]) {
-        socketMulticast[i].on('message', (message) => {
-          message = message.toString('utf8');
-          if (options.removeUdPbC) {
-            message = message.replace('UdPbC\u0000', '');
-          }
-          app.debug(message);
-          // console.log(JSON.stringify(message, null, 2)); //For debugging JSON
-          if (socketUdp) {
-            udpSend(message, options.sendAddress, options.sendPort);
-          }
-          if (options.sendNmeaOut) {
-            nmeaOut(message, options.sendNmeaOut);
-          }
+      socketMulticast[items].on('message', (message) => {
+        message = message.toString('utf8');
+        if (options.removeUdPbC) {
           message = message.replace('UdPbC\u0000', '');
-          nmeaParser(message);
-        });
-      }
-    }
+        }
+        app.debug(message);
+        // console.log(JSON.stringify(message, null, 2)); //For debugging JSON
+        if (socketUdp) {
+          udpSend(message, options.sendAddress, options.sendPort);
+        }
+        if (options.sendNmeaOut) {
+          nmeaOut(message, options.sendNmeaOut);
+        }
+        message = message.replace('UdPbC\u0000', '');
+        nmeaParser(message);
+      });     
+    })
   };
 
   function udpSend(message, host, port) {
@@ -82,14 +78,18 @@ module.exports = function (app) {
   }
 
   plugin.stop = function () {
-    let i;
-    for (i = 0; i < numberMulticast; i++) {
-      if (socketMulticast[i]) {
-        socketMulticast[i].close();
-        socketMulticast[i] = null;
-      }
+    if (numberMulticast) {
+      numberMulticast.forEach(items => {
+        if (socketMulticast[items]) {
+          socketMulticast[items].close();
+          app.debug(`Multicast socket ${items} closed`)
+          socketMulticast[items] = null;
+        }
+      })
+      numberMulticast = null;
       if (socketUdp) {
         socketUdp.close();
+        app.debug("UDP socket closed")
         socketUdp = null;
       }
     }
