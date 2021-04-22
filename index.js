@@ -1,5 +1,6 @@
 const dgram = require('dgram');
 const Parser = require('@signalk/nmea0183-signalk');
+const dtls = require('node-dtls-client').dtls;
 
 module.exports = function (app) {
   const plugin = {};
@@ -11,6 +12,7 @@ module.exports = function (app) {
   let numberMulticast = null;
   let socketMulticast = [];
   let socketUdp = [];
+  let socketDtls = [];
   const parser = new Parser();
   let multicast = [];
 
@@ -19,44 +21,74 @@ module.exports = function (app) {
     app.debug(`Number of configs: ${numberMulticast}`);
     let counter = 0;
 
-    if (options.sendAddress && options.sendPort) {
-      socketUdp = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+    
+    if (options.sendDtlsAddress && options.sendDtlsPort) {
+      socketDtls = dtls.createSocket({
+        type: "udp4",
+        address: options.sendDtlsAddress,
+        port: options.sendDtlsPort,
+        psk: { "Client_identity": options.sendDtlsPsk },
+        reuseAddr: true 
+      });
+    } else {
+      socketDtls = null;
     }
 
-    numberMulticast.forEach(items => {
-      multicast = options.multicast[items];
-      socketMulticast[items] = dgram.createSocket({ type: 'udp4', reuseAddr: true });
-      socketMulticast[items].bind(multicast.multicastPort, () => {
-        socketMulticast[counter].addMembership(options.multicast[counter].multicastAddress);
-        app.debug(`Multicast[${counter}] IP: ${options.multicast[counter].multicastAddress}`);
-        app.debug(`Multicast[${counter}] Port: ${options.multicast[counter].multicastPort}`);
-        app.debug(`Multicast[${counter}] Interface: ${options.interfaceIP}`);
-        counter += 1;
-      });
+    if (options.sendUdpAddress && options.sendUdpPort) {
+      socketUdp = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+    } else {
+      socketUdp = null;
+    }
 
-      socketMulticast[items].on('message', (message) => {
-        message = message.toString('utf8');
-        if (options.removeUdPbC) {
+    setTimeout(function() {
+      numberMulticast.forEach(items => {
+        multicast = options.multicast[items];
+        socketMulticast[items] = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+        socketMulticast[items].bind(multicast.multicastPort, () => {
+          socketMulticast[counter].addMembership(options.multicast[counter].multicastAddress);
+          app.debug(`Multicast[${counter}] IP: ${options.multicast[counter].multicastAddress}`);
+          app.debug(`Multicast[${counter}] Port: ${options.multicast[counter].multicastPort}`);
+          app.debug(`Multicast[${counter}] Interface: ${options.interfaceIP}`);
+          counter += 1;
+        });
+
+        socketMulticast[items].on('message', (message) => {
+          message = message.toString('utf8');
+          if (options.removeUdPbC) {
+            message = message.replace('UdPbC\u0000', '');
+          }
+          app.debug(message);
+          // console.log(JSON.stringify(message, null, 2)); //For debugging JSON
+          if (socketUdp) {
+            udpSend(message, options.sendUdpAddress, options.sendUdpPort);
+          }
+          if (socketDtls) {
+            dtlsSend(message);
+          }
+          if (options.sendNmeaOut) {
+            nmeaOut(message, options.sendNmeaOut);
+          }
           message = message.replace('UdPbC\u0000', '');
-        }
-        app.debug(message);
-        // console.log(JSON.stringify(message, null, 2)); //For debugging JSON
-        if (socketUdp) {
-          udpSend(message, options.sendAddress, options.sendPort);
-        }
-        if (options.sendNmeaOut) {
-          nmeaOut(message, options.sendNmeaOut);
-        }
-        message = message.replace('UdPbC\u0000', '');
-        nmeaParser(message);
-      });     
-    })
+          nmeaParser(message);
+        });     
+      })
+    }, 1000);
   };
 
   function udpSend(message, host, port) {
     socketUdp.send(message, port, host, (error) => {
       if (error) {
         socketUdp.close();
+        socketUdp = null;
+      }
+    });
+  }
+
+  function dtlsSend(message) {
+    socketDtls.send(Buffer.from(message, "utf-8"), (error) => {
+      if (error) {
+        socketDtls.close();
+        socketDtls = null;
       }
     });
   }
@@ -92,6 +124,11 @@ module.exports = function (app) {
         app.debug("UDP socket closed")
         socketUdp = null;
       }
+      if (socketDtls) {
+        socketDtls.close();
+        app.debug("DTLS socket closed")
+        socketDtls = null;
+      }
     }
   };
 
@@ -114,17 +151,33 @@ module.exports = function (app) {
         description: 'Received data is forwarded to address. E.g. localhost.',
         default: 'nmea0183out',
       },
-      sendAddress: {
+      sendUdpAddress: {
         type: 'string',
-        title: 'Output address',
+        title: 'Output UDP address',
         description: 'Received data is forwarded to address. E.g. localhost.',
-        default: 'localhost',
+        default: '127.0.0.1',
       },
-      sendPort: {
+      sendUdpPort: {
         type: 'number',
-        title: 'Output port',
-        description: 'Output port for UDP data. E.g. multicast data from port 60001 forwarded to localhost 6001',
+        title: 'Output UDP port',
+        description: 'Output port for UDP data.',
         default: 6000,
+      },
+      sendDtlsAddress: {
+        type: 'string',
+        title: 'Output DTLS address',
+        description: 'Received data is forwarded to address. E.g. localhost.',
+      },
+      sendDtlsPort: {
+        type: 'number',
+        title: 'Output DTLS port',
+        description: 'Output port for DTLS data. E.g. multicast data from port 60001 forwarded to localhost 6001',
+      },
+      sendDtlsPsk: {
+        type: 'string',
+        title: 'Output DTLS PSK',
+        description: 'PSK for DTLS connection.',
+        default: '<put-key-here>',
       },
       multicast: {
         type: 'array',

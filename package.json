@@ -14,7 +14,8 @@
   "license": "MIT",
   "dependencies": {
     "@signalk/nmea0183-signalk": "github:KEGustafsson/nmea0183-signalk#accept_empty",
-    "@signalk/nmea0183-utilities": "github:KEGustafsson/nmea0183-utilities#accept_empty"
+    "@signalk/nmea0183-utilities": "github:KEGustafsson/nmea0183-utilities#accept_empty",
+    "node-dtls-client": "^0.7.0"
   },
   "devDependencies": {
     "eslint": "^7.17.0",
