@@ -40,39 +40,37 @@ module.exports = function (app) {
       socketUdp = null;
     }
 
-    setTimeout(function() {
-      numberMulticast.forEach(items => {
-        multicast = options.multicast[items];
-        socketMulticast[items] = dgram.createSocket({ type: 'udp4', reuseAddr: true });
-        socketMulticast[items].bind(multicast.multicastPort, () => {
-          socketMulticast[counter].addMembership(options.multicast[counter].multicastAddress);
-          app.debug(`Multicast[${counter}] IP: ${options.multicast[counter].multicastAddress}`);
-          app.debug(`Multicast[${counter}] Port: ${options.multicast[counter].multicastPort}`);
-          app.debug(`Multicast[${counter}] Interface: ${options.interfaceIP}`);
-          counter += 1;
-        });
+    numberMulticast.forEach(items => {
+      multicast = options.multicast[items];
+      socketMulticast[items] = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+      socketMulticast[items].bind(multicast.multicastPort, () => {
+        socketMulticast[counter].addMembership(options.multicast[counter].multicastAddress);
+        app.debug(`Multicast[${counter}] IP: ${options.multicast[counter].multicastAddress}`);
+        app.debug(`Multicast[${counter}] Port: ${options.multicast[counter].multicastPort}`);
+        app.debug(`Multicast[${counter}] Interface: ${options.interfaceIP}`);
+        counter += 1;
+      });
 
-        socketMulticast[items].on('message', (message) => {
-          message = message.toString('utf8');
-          if (options.removeUdPbC) {
-            message = message.replace('UdPbC\u0000', '');
-          }
-          app.debug(message);
-          // console.log(JSON.stringify(message, null, 2)); //For debugging JSON
-          if (socketUdp) {
-            udpSend(message, options.sendUdpAddress, options.sendUdpPort);
-          }
-          if (socketDtls) {
-            dtlsSend(message);
-          }
-          if (options.sendNmeaOut) {
-            nmeaOut(message, options.sendNmeaOut);
-          }
+      socketMulticast[items].on('message', (message) => {
+        message = message.toString('utf8');
+        if (options.removeUdPbC) {
           message = message.replace('UdPbC\u0000', '');
-          nmeaParser(message);
-        });     
-      })
-    }, 1000);
+        }
+        app.debug(message);
+        // console.log(JSON.stringify(message, null, 2)); //For debugging JSON
+        if (socketUdp) {
+          udpSend(message, options.sendUdpAddress, options.sendUdpPort);
+        }
+        if (socketDtls) {
+          dtlsSend(message);
+        }
+        if (options.sendNmeaOut) {
+          nmeaOut(message, options.sendNmeaOut);
+        }
+        message = message.replace('UdPbC\u0000', '');
+        nmeaParser(message);
+      });     
+    })
   };
 
   function udpSend(message, host, port) {
