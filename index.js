@@ -1,6 +1,6 @@
 const dgram = require('dgram');
 const Parser = require('@signalk/nmea0183-signalk');
-const dtls = require('node-dtls-client').dtls;
+//const dtls = require('node-dtls-client').dtls;
 
 module.exports = function (app) {
   const plugin = {};
@@ -12,7 +12,8 @@ module.exports = function (app) {
   let numberMulticast = null;
   let socketMulticast = [];
   let socketUdp = [];
-  let socketDtls = [];
+  let socketUdpDebug = [];
+  //let socketDtls = [];
   const parser = new Parser();
   let multicast = [];
 
@@ -21,7 +22,7 @@ module.exports = function (app) {
     app.debug(`Number of configs: ${numberMulticast}`);
     let counter = 0;
 
-    
+/*    
     if (options.sendDtlsAddress && options.sendDtlsPort) {
       socketDtls = dtls.createSocket({
         type: "udp4",
@@ -33,11 +34,17 @@ module.exports = function (app) {
     } else {
       socketDtls = null;
     }
-
+*/
     if (options.sendUdpAddress && options.sendUdpPort) {
       socketUdp = dgram.createSocket({ type: 'udp4', reuseAddr: true });
     } else {
       socketUdp = null;
+    }
+
+    if (options.sendUdpAddressDebug && options.sendUdpPortDebug) {
+      socketUdpDebug = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+    } else {
+      socketUdpDebug = null;
     }
 
     numberMulticast.forEach(items => {
@@ -58,17 +65,21 @@ module.exports = function (app) {
         }
         app.debug(message);
         // console.log(JSON.stringify(message, null, 2)); //For debugging JSON
-        if (socketUdp) {
-          udpSend(message, options.sendUdpAddress, options.sendUdpPort);
+        if (socketUdpDebug) {
+          udpSendDebug(message, options.sendUdpAddressDebug, options.sendUdpPortDebug);
         }
+/*
         if (socketDtls) {
           dtlsSend(message);
         }
+*/
         if (options.sendNmeaOut) {
           nmeaOut(message, options.sendNmeaOut);
         }
-        message = message.replace('UdPbC\u0000', '');
-        nmeaParser(message);
+        if (socketUdp) {
+          message = message.replace('UdPbC\u0000', '');
+          udpSend(message, options.sendUdpAddress, options.sendUdpPort);
+        }
       });     
     })
   };
@@ -76,12 +87,20 @@ module.exports = function (app) {
   function udpSend(message, host, port) {
     socketUdp.send(message, port, host, (error) => {
       if (error) {
-        socketUdp.close();
-        socketUdp = null;
+        console.error();
       }
     });
   }
 
+  function udpSendDebug(message, host, port) {
+    socketUdpDebug.send(message, port, host, (error) => {
+      if (error) {
+        console.error();
+      }
+    });
+  }
+
+/*
   function dtlsSend(message) {
     socketDtls.send(Buffer.from(message, "utf-8"), (error) => {
       if (error) {
@@ -90,11 +109,13 @@ module.exports = function (app) {
       }
     });
   }
+*/
 
   function nmeaOut(message, sendNmeaOut) {
     app.emit(sendNmeaOut, message.replace(/\r?\n|\r/, ' '));
   }
 
+/*
   function nmeaParser(message) {
     try {
       const delta = parser.parse(message.trim());
@@ -106,6 +127,7 @@ module.exports = function (app) {
       console.error(`${plugin.id}: ${e.message}`);
     }
   }
+*/
 
   plugin.stop = function () {
     if (numberMulticast) {
@@ -122,11 +144,18 @@ module.exports = function (app) {
         app.debug("UDP socket closed")
         socketUdp = null;
       }
+      if (socketUdpDebug) {
+        socketUdpDebug.close();
+        app.debug("Debug UDP socket closed")
+        socketUdpDebug = null;
+      }
+/*
       if (socketDtls) {
         socketDtls.close();
         app.debug("DTLS socket closed")
         socketDtls = null;
       }
+*/
     }
   };
 
@@ -159,8 +188,21 @@ module.exports = function (app) {
         type: 'number',
         title: 'Output UDP port',
         description: 'Output port for UDP data.',
+        default: 7777,
+      },
+      sendUdpAddressDebug: {
+        type: 'string',
+        title: 'Debug Output UDP address',
+        description: 'Received data is forwarded to address. E.g. localhost.',
+        default: '127.0.0.1',
+      },
+      sendUdpPortDebug: {
+        type: 'number',
+        title: 'Debug Output UDP port',
+        description: 'Output port for UDP data.',
         default: 6000,
       },
+/*
       sendDtlsAddress: {
         type: 'string',
         title: 'Output DTLS address',
@@ -177,6 +219,7 @@ module.exports = function (app) {
         description: 'PSK for DTLS connection.',
         default: '<put-key-here>',
       },
+*/
       multicast: {
         type: 'array',
         title: 'IEC61162-450 client',
