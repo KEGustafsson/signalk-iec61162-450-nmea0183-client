@@ -1,6 +1,6 @@
 const dgram = require('dgram');
-const Parser = require('@signalk/nmea0183-signalk');
-const debug = require('debug');
+//const Parser = require('@signalk/nmea0183-signalk');
+//const debug = require('debug');
 
 module.exports = function (app) {
   const plugin = {};
@@ -13,7 +13,7 @@ module.exports = function (app) {
   let socketMulticast = [];
   let socketUdp = [];
   let socketUdpDebug = [];
-  const parser = new Parser();
+  //const parser = new Parser();
   let multicast = [];
 
   plugin.start = function (options) {
