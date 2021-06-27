@@ -1,6 +1,6 @@
 const dgram = require('dgram');
 const Parser = require('@signalk/nmea0183-signalk');
-//const dtls = require('node-dtls-client').dtls;
+const debug = require('debug');
 
 module.exports = function (app) {
   const plugin = {};
