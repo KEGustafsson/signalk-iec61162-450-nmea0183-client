@@ -34,6 +34,7 @@ module.exports = function (app) {
       multicast = options.multicast[items];
       socketMulticast[items] = dgram.createSocket({ type: 'udp4', reuseAddr: true });
       socketMulticast[items].bind(multicast.multicastPort, () => {
+        socketMulticast[counter].setMulticastInterface(options.interfaceIP);
         socketMulticast[counter].addMembership(options.multicast[counter].multicastAddress);
         app.debug(`Multicast[${counter}] IP: ${options.multicast[counter].multicastAddress}`);
         app.debug(`Multicast[${counter}] Port: ${options.multicast[counter].multicastPort}`);
@@ -173,5 +174,6 @@ module.exports = function (app) {
       },
     },
   };
+
   return plugin;
 };
